@@ -18,7 +18,14 @@ __dependencies__ = []
 
 default_icon = os.path.dirname(__file__) + "/jetbrains.svg"
 HOME_DIR = os.environ["HOME"]
+
 JETBRAINS_XDG_CONFIG_DIR = os.path.join(HOME_DIR, ".config/JetBrains")
+GOOGLE_XDG_CONFIG_DIR = os.path.join(HOME_DIR, ".config/Google")
+
+# for all new (2020.1+) config folders and IntelliJIdea and AndroidStudio, this is the right path.
+NEW_RELATIVE_CONFIG_PATH = "options/recentProjects.xml"
+# for older config folders of other IDEs, the following is right:
+OLD_RELATIVE_CONFIG_PATH = "options/recentProjectDirectories.xml"
 
 paths = [  # <Name for config directory>, <possible names for the binary/icon>
     ["AndroidStudio", "android-studio"],
@@ -77,22 +84,19 @@ def get_proj(path):
 
 # finds the actual path to the relevant xml file of the most recent configuration directory
 def find_config_path(app_name: str):
-    # for all new (2020.1+) config folders and IntelliJIdea and AndroidStudio, this is the right path.
-    relative_config_path_new = "options/recentProjects.xml"
-    # for older config folders of other IDEs, the following is right:
-    relative_config_path_old = "options/recentProjectDirectories.xml"
-    
     full_config_path = None
     
+    xdg_dir = GOOGLE_XDG_CONFIG_DIR if app_name == "AndroidStudio" else JETBRAINS_XDG_CONFIG_DIR
+    
     # newer versions (since 2020.1) put their configuration here
-    if os.path.isdir(JETBRAINS_XDG_CONFIG_DIR):
+    if os.path.isdir(xdg_dir):
         # dirs contains possibly multiple directories for a program (eg. .GoLand2018.1 and .GoLand2017.3)
-        dirs = [f for f in os.listdir(JETBRAINS_XDG_CONFIG_DIR) if
-                os.path.isdir(os.path.join(JETBRAINS_XDG_CONFIG_DIR, f)) and f.startswith(app_name)]
+        dirs = [f for f in os.listdir(xdg_dir) if
+                os.path.isdir(os.path.join(xdg_dir, f)) and f.startswith(app_name)]
         # take the newest
         dirs.sort(reverse=True)
         if len(dirs) != 0:
-            full_config_path = os.path.join(JETBRAINS_XDG_CONFIG_DIR, dirs[0], relative_config_path_new)
+            full_config_path = os.path.join(xdg_dir, dirs[0], NEW_RELATIVE_CONFIG_PATH)
     
     # if no config was found in the newer path, repeat for the old ones
     if full_config_path is None or not os.path.exists(full_config_path):
@@ -106,9 +110,9 @@ def find_config_path(app_name: str):
             return None
         
         if app_name != "IntelliJIdea" and app_name != "AndroidStudio":
-            full_config_path = os.path.join(HOME_DIR, dirs[0], "config", relative_config_path_old)
+            full_config_path = os.path.join(HOME_DIR, dirs[0], "config", OLD_RELATIVE_CONFIG_PATH)
         else:
-            full_config_path = os.path.join(HOME_DIR, dirs[0], "config", relative_config_path_new)
+            full_config_path = os.path.join(HOME_DIR, dirs[0], "config", NEW_RELATIVE_CONFIG_PATH)
         
         if not os.path.exists(full_config_path):
             return None
@@ -132,20 +136,22 @@ def handleQuery(query):
             
             # extract the binary name and icon
             binaries[app[0]] = find_exec(app[1])
-
+            
             # add all recently opened projects
             projects.extend([[e[0], e[1], app[0]] for e in get_proj(full_config_path)])
         projects.sort(key=lambda s: s[0], reverse=True)
-
+        
         # List all projects or the one corresponding to the query
         if query.string:
             projects = [p for p in projects if p[1].lower().find(query.string.lower()) != -1]
-
+        
         items = []
         now = int(time.time() * 1000.0)
         for p in projects:
             last_update = p[0]
             project_path = p[1]
+            if not os.path.exists(project_path):
+                continue
             project_dir = project_path.split("/")[-1]
             app_name = p[2]
             binary = binaries[app_name]
@@ -156,7 +162,7 @@ def handleQuery(query):
             icon = binary[1]
             
             output_entry = Item(
-                id="%015d" % (now - last_update, project_path, app_name),
+                id="%015d-%s-%s" % (now - last_update, project_path, app_name),
                 icon=icon,
                 text=project_dir,
                 subtext=project_path,
