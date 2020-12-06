@@ -139,12 +139,16 @@ def handleQuery(query):
             
             # add all recently opened projects
             projects.extend([[e[0], e[1], app[0]] for e in get_proj(full_config_path)])
-        projects.sort(key=lambda s: s[0], reverse=True)
         
         # List all projects or the one corresponding to the query
         if query.string:
             projects = [p for p in projects if p[1].lower().find(query.string.lower()) != -1]
-        
+
+        # disable automatic sorting
+        query.disableSort()
+        # sort by last modified, most recent first.
+        projects.sort(key=lambda s: s[0], reverse=True)
+
         items = []
         now = int(time.time() * 1000.0)
         for p in projects:
