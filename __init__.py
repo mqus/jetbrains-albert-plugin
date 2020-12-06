@@ -3,6 +3,7 @@
 """List and open JetBrains IDE projects."""
 
 import os
+import time
 from shutil import which
 from xml.etree import ElementTree
 
@@ -10,7 +11,7 @@ from albertv0 import *
 
 __iid__ = "PythonInterface/v0.1"
 __prettyname__ = "Jetbrains IDE Projects"
-__version__ = "1.3"
+__version__ = "1.4"
 __trigger__ = "jb "
 __author__ = "Markus Richter, Thomas Queste"
 __dependencies__ = []
@@ -38,73 +39,97 @@ def find_exec(namestr: str):
     for name in namestr.split(" "):
         executable = which(name)
         if executable:
-            icon = iconLookup(name) or default_icon
+            break
+    else:
+        return None
+    
+    for name in namestr.split(" "):
+        icon = iconLookup(name)
+        if icon:
             return executable, icon
-    return None
+    
+    return executable, default_icon
 
 
 # parse the xml at path, return all recent project paths and the time they were last open
 def get_proj(path):
-    r = ElementTree.parse(path).getroot()  # type:ElementTree.Element
+    root = ElementTree.parse(path).getroot()  # type:ElementTree.Element
     add_info = None
-    items = dict()
-    for o in r[0]:  # type:ElementTree.Element
-        if o.attrib["name"] == 'recentPaths':
-            for i in o[0]:
-                items[i.attrib["value"]] = 0
-
-        else:
-            if o.attrib["name"] == 'additionalInfo':
-                add_info = o[0]
-
+    path2timestamp = dict()
+    for option_tag in root[0]:  # type:ElementTree.Element
+        if option_tag.attrib["name"] == 'recentPaths':
+            for recent_path in option_tag[0]:
+                path2timestamp[recent_path.attrib["value"]] = 0
+        elif option_tag.attrib["name"] == 'additionalInfo':
+            add_info = option_tag[0]
+    
+    # for all additionalInfo entries, also add the real timestamp.
     if add_info is not None:
-        for i in add_info:
-            for o in i[0][0]:
-                if o.tag == 'option' and 'name' in o.attrib and o.attrib["name"] == 'projectOpenTimestamp':
-                    items[i.attrib["key"]] = int(o.attrib["value"])
+        for entry_tag in add_info:
+            for option_tag in entry_tag[0][0]:
+                if option_tag.tag == 'option' and 'name' in option_tag.attrib and option_tag.attrib[
+                    "name"] == 'projectOpenTimestamp':
+                    path2timestamp[entry_tag.attrib["key"]] = int(option_tag.attrib["value"])
+    
+    # return [(timestamp,path),...]
+    return [(path2timestamp[path], path.replace("$USER_HOME$", HOME_DIR)) for path in path2timestamp]
 
-    if len(items) == 0:
-        return []
 
-    return [(items[e], e.replace("$USER_HOME$", HOME_DIR)) for e in items]
+# finds the actual path to the relevant xml file of the most recent configuration directory
+def find_config_path(app_name: str):
+    # for all new (2020.1+) config folders and IntelliJIdea and AndroidStudio, this is the right path.
+    relative_config_path_new = "options/recentProjects.xml"
+    # for older config folders of other IDEs, the following is right:
+    relative_config_path_old = "options/recentProjectDirectories.xml"
+    
+    full_config_path = None
+    
+    # newer versions (since 2020.1) put their configuration here
+    if os.path.isdir(JETBRAINS_XDG_CONFIG_DIR):
+        # dirs contains possibly multiple directories for a program (eg. .GoLand2018.1 and .GoLand2017.3)
+        dirs = [f for f in os.listdir(JETBRAINS_XDG_CONFIG_DIR) if
+                os.path.isdir(os.path.join(JETBRAINS_XDG_CONFIG_DIR, f)) and f.startswith(app_name)]
+        # take the newest
+        dirs.sort(reverse=True)
+        if len(dirs) != 0:
+            full_config_path = os.path.join(JETBRAINS_XDG_CONFIG_DIR, dirs[0], relative_config_path_new)
+    
+    # if no config was found in the newer path, repeat for the old ones
+    if full_config_path is None or not os.path.exists(full_config_path):
+        
+        # dirs contains possibly multiple directories for a program (eg. .GoLand2018.1 and .GoLand2017.3)
+        dirs = [f for f in os.listdir(HOME_DIR) if
+                os.path.isdir(os.path.join(HOME_DIR, f)) and f.startswith("." + app_name)]
+        # take the newest
+        dirs.sort(reverse=True)
+        if len(dirs) == 0:
+            return None
+        
+        if app_name != "IntelliJIdea" and app_name != "AndroidStudio":
+            full_config_path = os.path.join(HOME_DIR, dirs[0], "config", relative_config_path_old)
+        else:
+            full_config_path = os.path.join(HOME_DIR, dirs[0], "config", relative_config_path_new)
+        
+        if not os.path.exists(full_config_path):
+            return None
+    return full_config_path
 
 
+# The entry point for the plugin, will be called by albert.
 def handleQuery(query):
     if query.isTriggered:
+        # a dict which maps the app name to a tuple of executable path and icon.
         binaries = {}
+        # an array of tuples representing the project([timestamp,path,app name])
         projects = []
-
+        
         for app in paths:
-            config_path = "options/recentProjects.xml"
-
-            full_config_path = None
-
-            # newer versions (since 2020.1) put their configuration here
-            if os.path.isdir(JETBRAINS_XDG_CONFIG_DIR):
-                # dirs contains possibly multiple directories for a program (eg. .GoLand2018.1 and .GoLand2017.3)
-                dirs = [f for f in os.listdir(JETBRAINS_XDG_CONFIG_DIR) if
-                        os.path.isdir(os.path.join(JETBRAINS_XDG_CONFIG_DIR, f)) and f.startswith(app[0])]
-                # take the newest
-                dirs.sort(reverse=True)
-                if len(dirs) != 0:
-                    full_config_path = os.path.join(JETBRAINS_XDG_CONFIG_DIR, dirs[0], config_path)
-
-            # if no config was found in the newer path, repeat for the old ones
-            if full_config_path is None or not os.path.exists(full_config_path):
-                if app[0] != "IntelliJIdea" and app[0] != "AndroidStudio":
-                    config_path = "options/recentProjectDirectories.xml"
-                # dirs contains possibly multiple directories for a program (eg. .GoLand2018.1 and .GoLand2017.3)
-                dirs = [f for f in os.listdir(HOME_DIR) if
-                        os.path.isdir(os.path.join(HOME_DIR, f)) and f.startswith("." + app[0])]
-                # take the newest
-                dirs.sort(reverse=True)
-                if len(dirs) == 0:
-                    continue
-
-                full_config_path = os.path.join(HOME_DIR, dirs[0], "config", config_path)
-                if not os.path.exists(full_config_path):
-                    continue
-
+            # get configuration file path
+            full_config_path = find_config_path(app[0])
+            
+            if full_config_path is None:
+                continue
+            
             # extract the binary name and icon
             binaries[app[0]] = find_exec(app[1])
 
@@ -117,27 +142,30 @@ def handleQuery(query):
             projects = [p for p in projects if p[1].lower().find(query.string.lower()) != -1]
 
         items = []
+        now = int(time.time() * 1000.0)
         for p in projects:
             last_update = p[0]
             project_path = p[1]
             project_dir = project_path.split("/")[-1]
-            product_name = p[2]
-            binary = binaries[product_name]
+            app_name = p[2]
+            binary = binaries[app_name]
             if not binary:
                 continue
-
-            executable = binaries[p[2]][0]
-            icon = binaries[p[2]][1]
-
-            items.append(Item(
-                id="-" + str(last_update),
+            
+            executable = binary[0]
+            icon = binary[1]
+            
+            output_entry = Item(
+                id="%015d" % (now - last_update, project_path, app_name),
                 icon=icon,
                 text=project_dir,
                 subtext=project_path,
                 completion=__trigger__ + project_dir,
                 actions=[
-                    ProcAction("Open in %s" % product_name, [executable, project_path])
+                    ProcAction("Open in %s" % app_name, [executable, project_path])
                 ]
-            ))
-
+            )
+            # print("%s,%s,%s,%s" % (output_entry.id,output_entry.text,output_entry.subtext,app_name))
+            items.append(output_entry)
+        
         return items
