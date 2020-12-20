@@ -7,14 +7,12 @@ import time
 from shutil import which
 from xml.etree import ElementTree
 
-from albertv0 import *
+from albert import *
 
-__iid__ = "PythonInterface/v0.1"
-__prettyname__ = "Jetbrains IDE Projects"
-__version__ = "1.4"
-__trigger__ = "jb "
-__author__ = "Markus Richter, Thomas Queste"
-__dependencies__ = []
+__title__ = "Jetbrains IDE Projects"
+__version__ = "0.4.5"
+__triggers__ = "jb "
+__authors__ = "Markus Richter, Thomas Queste"
 
 default_icon = os.path.dirname(__file__) + "/jetbrains.svg"
 HOME_DIR = os.environ["HOME"]
@@ -170,9 +168,9 @@ def handleQuery(query):
                 icon=icon,
                 text=project_dir,
                 subtext=project_path,
-                completion=__trigger__ + project_dir,
+                completion=__triggers__ + project_dir,
                 actions=[
-                    ProcAction("Open in %s" % app_name, [executable, project_path])
+                    ProcAction(text="Open in %s" % app_name, commandline=[executable, project_path])
                 ]
             )
             # print("%s,%s,%s,%s" % (output_entry.id,output_entry.text,output_entry.subtext,app_name))
