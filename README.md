@@ -27,6 +27,10 @@ After that, you should have the following structure:
 
 Now, open your albert settings and go to Extensions and then Python. You can then activate the plugin there. You might have to restart albert if it does not show up there at first.
 
+## How to use:
+
+Type `jb ` in the prompt, followed by your search term. Albert should show you a list of matching projects, scraped from your "recently edited" list of your Jetbrains IDEs. It tries to match the path of your project directory (not e.g. any files or contents).
+
 ## Contributors:
 
 Thomas Queste (@tomsquest)
