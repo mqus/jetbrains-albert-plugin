@@ -93,7 +93,7 @@ class Plugin(QueryHandler):
         # query.disableSort()
 
         # sort by last modified, most recent first.
-        projects.sort(key=lambda s: s[0], reverse=True)
+        # projects.sort(key=lambda s: s[0], reverse=True)
 
         items = []
         now = int(time.time() * 1000.0)
