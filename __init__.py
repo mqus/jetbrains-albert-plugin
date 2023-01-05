@@ -88,12 +88,8 @@ class Plugin(QueryHandler):
                 p for p in projects if p[1].lower().find(query.string.lower()) != -1
             ]
 
-        # TODO do we still need this?
-        # disable automatic sorting
-        # query.disableSort()
-
         # sort by last modified, most recent first.
-        # projects.sort(key=lambda s: s[0], reverse=True)
+        projects.sort(key=lambda p: p[0], reverse=True)
 
         items = []
         now = int(time.time() * 1000.0)
