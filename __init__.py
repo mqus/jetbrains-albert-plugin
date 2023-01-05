@@ -121,8 +121,10 @@ class Plugin(QueryHandler):
                     actions=[
                         Action(
                             "Open",
-                            "Open in %s" % app_name,
-                            lambda: runDetachedProcess([executable, project_path]),
+                            "Open in %s" % "app_name",
+                            lambda selected_project=project_path: runDetachedProcess(
+                                [executable, selected_project]
+                            ),
                         )
                     ],
                 )
