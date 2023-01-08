@@ -34,10 +34,7 @@ paths = [  # <Name for config directory>, <possible names for the binary/icon>
     ["CLion", "clion"],
     ["DataGrip", "datagrip"],
     ["GoLand", "goland"],
-    [
-        "IntelliJIdea",
-        "intellij-idea-ue-bundled-jre intellij-idea-ultimate-edition idea-ce-eap idea-ue-eap idea idea-ultimate",
-    ],
+    ["IntelliJIdea", "intellij-idea-ue-bundled-jre intellij-idea-ultimate-edition idea-ce-eap idea-ue-eap idea idea-ultimate"],
     ["PhpStorm", "phpstorm"],
     ["PyCharm", "pycharm pycharm-eap charm"],
     ["RubyMine", "rubymine jetbrains-rubymine jetbrains-rubymine-eap"],
