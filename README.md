@@ -34,6 +34,10 @@ Now, open your albert settings and go to Extensions and then Python. You can the
 
 Type `jb ` in the prompt, followed by your search term. Albert should show you a list of matching projects, scraped from your "recently edited" list of your Jetbrains IDEs. It tries to match the path of your project directory (not e.g. any files or contents).
 
+## Creating the project launcher:
+
+For this plugin to find the editors, you need to create a command line launcher for them. This is done by opening the IDE (for example PyCharm) and then going to `Tools -> Create Command-line Launcher...`. This will create a launcher (for example, `charm`) that this plugin will be able to find.
+
 ## Contributors:
 
 Thomas Queste (@tomsquest)
