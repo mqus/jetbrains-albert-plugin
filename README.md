@@ -14,7 +14,6 @@ If you are using git, you can use the following command which will clone the rep
 git clone https://github.com/mqus/jetbrains-albert-plugin.git ${XDG_DATA_HOME:-$HOME/.local/share}/albert/python/plugins/jetbrains-projects
 ```
 
-
 If you don't have git, you can simply download a zip archive, extract it and move the folder containing `__init__.py` into the `.local/share/albert/python/plugins` directory in your home directory, while creating any folders that don't exist yet.
 
 After that, you should have the following structure:
@@ -40,11 +39,7 @@ For this plugin to find the editors, you need to create a command line launcher 
 
 ## Contributors:
 
-Thomas Queste (@tomsquest)
-
-@iyzana
-
-@Sharsie
-
-@dsager
-
+- Thomas Queste (@tomsquest)
+- @iyzana
+- @Sharsie
+- @dsager
