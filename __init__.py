@@ -29,7 +29,8 @@ NEW_RELATIVE_CONFIG_PATH = "options/recentProjects.xml"
 # for older config folders of other IDEs, the following is right:
 OLD_RELATIVE_CONFIG_PATH = "options/recentProjectDirectories.xml"
 
-paths = [  # <Name for config directory>, <possible names for the binary/icon>
+# <Name for config directory>, <possible names for the binary/icon>
+paths = [
     ["AndroidStudio", "android-studio"],
     ["CLion", "clion"],
     ["DataGrip", "datagrip"],
@@ -58,7 +59,7 @@ class Plugin(QueryHandler):
     def initialize(self):
         pass
 
-    def handleQuery(self, query):
+    def handleQuery(self, query: Query):
         # a dict which maps the app name to a tuple of executable path and icon.
         binaries = {}
         # an array of tuples representing the project([timestamp,path,app name])
@@ -135,7 +136,7 @@ class Plugin(QueryHandler):
             return None
 
     # parse the xml at path, return all recent project paths and the time they were last open
-    def get_proj(self, path):
+    def get_proj(self, path: str):
         root = ElementTree.parse(path).getroot()  # type:ElementTree.Element
         add_info = None
         path2timestamp = dict()
