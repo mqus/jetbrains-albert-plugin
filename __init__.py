@@ -110,7 +110,7 @@ class Plugin(QueryHandler):
                     text=project_dir,
                     subtext="Open %s with %s" % (project_path, app_name),
                     completion=query.trigger + project_dir,
-                    icon=[icon],
+                    icon=[icon, default_icon],
                     actions=[
                         Action(
                             "Open",
@@ -130,17 +130,9 @@ class Plugin(QueryHandler):
         for name in namestr.split(" "):
             executable = which(name)
             if executable:
-                break
+                return executable, "xdg:%s" % name
         else:
             return None
-
-        # TODO: find a replacement of iconLookup?
-        # for name in namestr.split(" "):
-        #     icon = iconLookup(name)
-        #     if icon:
-        #         return executable, icon
-
-        return executable, default_icon
 
     # parse the xml at path, return all recent project paths and the time they were last open
     def get_proj(self, path):
