@@ -111,7 +111,7 @@ class Plugin(QueryHandler):
                 Item(
                     id="%015d-%s-%s" % (now - last_update, project_path, app_name),
                     text=project_dir,
-                    subtext=project_path,
+                    subtext="Open %s with %s" % (project_path, app_name),
                     completion=query.trigger + project_dir,
                     icon=[icon],
                     actions=[
