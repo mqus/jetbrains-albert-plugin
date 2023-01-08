@@ -10,7 +10,7 @@ from xml.etree import ElementTree
 from albert import *
 
 md_iid = "0.5"
-md_version = "1.0"
+md_version = "0.5"
 md_name = "Jetbrains"
 md_description = "Open Jetbrains IDE projects"
 md_license = "GPL-3"
