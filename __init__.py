@@ -3,47 +3,84 @@
 """List and open JetBrains IDE projects."""
 
 import os
-import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Union
 from shutil import which
 from xml.etree import ElementTree
-
 from albert import *
 
 md_iid = "0.5"
-md_version = "0.5"
-md_name = "Jetbrains"
-md_description = "Open Jetbrains IDE projects"
+md_version = "1.0"
+md_name = "Jetbrains projects"
+md_description = "Open Jetbrains projects"
 md_license = "GPL-3"
-md_url = "https://github.com/mqus/jetbrains-albert-plugin"
+md_url = "https://github.com/tomsquest/jetbrains-idea"
 md_maintainers = ["@mqus", "@tomsquest"]
-md_authors = "@mqus"
+md_authors = ["@mqus", "@tomsquest"]
 
-default_icon = os.path.dirname(__file__) + "/jetbrains.svg"
-HOME_DIR = os.environ["HOME"]
 
-JETBRAINS_XDG_CONFIG_DIR = os.path.join(HOME_DIR, ".config/JetBrains")
-GOOGLE_XDG_CONFIG_DIR = os.path.join(HOME_DIR, ".config/Google")
+@dataclass
+class Project:
+    name: str
+    path: str
+    last_opened: int
 
-# for all new (2020.1+) config folders and IntelliJIdea and AndroidStudio, this is the right path.
-NEW_RELATIVE_CONFIG_PATH = "options/recentProjects.xml"
-# for older config folders of other IDEs, the following is right:
-OLD_RELATIVE_CONFIG_PATH = "options/recentProjectDirectories.xml"
 
-# <Name for config directory>, <possible names for the binary/icon>
-paths = [
-    ["AndroidStudio", "android-studio"],
-    ["CLion", "clion"],
-    ["DataGrip", "datagrip"],
-    ["GoLand", "goland"],
-    ["IntelliJIdea", "intellij-idea-ue-bundled-jre intellij-idea-ultimate-edition idea-ce-eap idea-ue-eap idea idea-ultimate"],
-    ["PhpStorm", "phpstorm"],
-    ["PyCharm", "pycharm pycharm-eap charm"],
-    ["RubyMine", "rubymine jetbrains-rubymine jetbrains-rubymine-eap"],
-    ["WebStorm", "webstorm"],
-]
+@dataclass
+class Editor:
+    name: str
+    icon: str
+    config_dir_prefix: str
+    binary: str
+
+    def __init__(self, name: str, icon: str, config_dir_prefix: str, binaries: list[str]):
+        self.name = name
+        self.icon = icon
+        self.config_dir_prefix = config_dir_prefix
+        self.binary = self._find_binary(binaries)
+
+    def _find_binary(self, binaries: list[str]) -> Union[str, None]:
+        for binary in binaries:
+            if which(binary):
+                return binary
+        return None
+
+    def list_projects(self) -> list[Project]:
+        dirs = list(Path.home().glob(f".config/{self.config_dir_prefix}*/"))
+        if not dirs:
+            return []
+        latest = sorted(dirs)[-1]
+        return self._parse_recent_projects(Path(latest) / "options" / "recentProjects.xml")
+
+    def _parse_recent_projects(self, recent_projects_file: Path) -> list[Project]:
+        try:
+            root = ElementTree.parse(recent_projects_file).getroot()
+            entries = root.findall(".//component[@name='RecentProjectsManager']//entry[@key]")
+
+            projects = []
+            for entry in entries:
+                project_path = entry.attrib["key"].replace("$USER_HOME$", Path.home().as_posix())
+
+                tag_opened = entry.find(".//option[@name='projectOpenTimestamp']")
+                last_opened = int(
+                    tag_opened.attrib["value"]
+                    if tag_opened is not None and "value" in tag_opened.attrib
+                    else ""
+                )
+
+                if project_path and last_opened:
+                    projects.append(
+                        Project(name=os.path.basename(project_path), path=project_path, last_opened=last_opened)
+                    )
+            return projects
+        except ElementTree.ParseError:
+            return []
 
 
 class Plugin(QueryHandler):
+    executables = []
+
     def id(self):
         return __name__
 
@@ -57,164 +94,92 @@ class Plugin(QueryHandler):
         return "jb "
 
     def initialize(self):
-        pass
-
-    def handleQuery(self, query: Query):
-        # a dict which maps the app name to a tuple of executable path and icon.
-        binaries = {}
-        # an array of tuples representing the project([timestamp,path,app name])
-        projects = []
-
-        for app in paths:
-            # get configuration file path
-            full_config_path = self.find_config_path(app[0])
-
-            if full_config_path is None:
-                continue
-
-            # extract the binary name and icon
-            binaries[app[0]] = self.find_exec(app[1])
-
-            # add all recently opened projects
-            projects.extend(
-                [[e[0], e[1], app[0]] for e in self.get_proj(full_config_path)]
-            )
-
-        # List all projects or the one corresponding to the query
-        if query.string:
-            projects = [
-                p for p in projects if p[1].lower().find(query.string.lower()) != -1
-            ]
-
-        # sort by last modified, most recent first.
-        projects.sort(key=lambda p: p[0], reverse=True)
-
-        items = []
-        now = int(time.time() * 1000.0)
-        for p in projects:
-            last_update = p[0]
-            project_path = p[1]
-            if not os.path.exists(project_path):
-                continue
-            project_dir = project_path.split("/")[-1]
-            app_name = p[2]
-            binary = binaries[app_name]
-            if not binary:
-                continue
-
-            executable = binary[0]
-            icon = binary[1]
-
-            items.append(
-                Item(
-                    id="%015d-%s-%s" % (now - last_update, project_path, app_name),
-                    text=project_dir,
-                    subtext="Open %s with %s" % (project_path, app_name),
-                    completion=query.trigger + project_dir,
-                    icon=[icon, default_icon],
-                    actions=[
-                        Action(
-                            "Open",
-                            "Open in %s" % app_name,
-                            lambda selected_project=project_path: runDetachedProcess(
-                                [executable, selected_project]
-                            ),
-                        )
-                    ],
-                )
-            )
-
-        query.add(items)
-
-    # find the executable path and icon of a program described by space-separated lists of possible binary-names
-    def find_exec(self, namestr: str):
-        for name in namestr.split(" "):
-            executable = which(name)
-            if executable:
-                return executable, "xdg:%s" % name
-        else:
-            return None
-
-    # parse the xml at path, return all recent project paths and the time they were last open
-    def get_proj(self, path: str):
-        root = ElementTree.parse(path).getroot()  # type:ElementTree.Element
-        add_info = None
-        path2timestamp = dict()
-        for option_tag in root[0]:  # type:ElementTree.Element
-            if option_tag.attrib["name"] == "recentPaths":
-                for recent_path in option_tag[0]:
-                    path2timestamp[recent_path.attrib["value"]] = 0
-            elif option_tag.attrib["name"] == "additionalInfo":
-                add_info = option_tag[0]
-
-        # for all additionalInfo entries, also add the real timestamp.
-        if add_info is not None:
-            for entry_tag in add_info:
-                for option_tag in entry_tag[0][0]:
-                    if (
-                        option_tag.tag == "option"
-                        and "name" in option_tag.attrib
-                        and option_tag.attrib["name"] == "projectOpenTimestamp"
-                    ):
-                        path2timestamp[entry_tag.attrib["key"]] = int(
-                            option_tag.attrib["value"]
-                        )
-
-        # return [(timestamp,path),...]
-        return [
-            (path2timestamp[path], path.replace("$USER_HOME$", HOME_DIR))
-            for path in path2timestamp
+        plugin_dir = os.path.dirname(__file__)
+        self.editors = [
+            Editor(
+                name="Android Studio",
+                icon=plugin_dir + "/androidstudio.svg",
+                config_dir_prefix="Google/AndroidStudio",
+                binaries=["studio", "androidstudio"]),
+            Editor(
+                name="CLion",
+                icon=plugin_dir + "/clion.svg",
+                config_dir_prefix="JetBrains/CLion",
+                binaries=["clion"]),
+            Editor(
+                name="DataGrip",
+                icon=plugin_dir + "/datagrip.svg",
+                config_dir_prefix="JetBrains/DataGrip",
+                binaries=["datagrip"]),
+            Editor(
+                name="DataSpell",
+                icon=plugin_dir + "/dataspell.svg",
+                config_dir_prefix="JetBrains/DataSpell",
+                binaries=["dataspell"]),
+            Editor(
+                name="GoLand",
+                icon=plugin_dir + "/goland.svg",
+                config_dir_prefix="JetBrains/GoLand",
+                binaries=["goland"]),
+            Editor(
+                name="IntelliJ IDEA",
+                icon=plugin_dir + "/idea.svg",
+                config_dir_prefix="JetBrains/IntelliJIdea",
+                binaries=["idea"]),
+            Editor(
+                name="PhpStorm",
+                icon=plugin_dir + "/phpstorm.svg",
+                config_dir_prefix="JetBrains/PhpStorm",
+                binaries=["phpstorm"]),
+            Editor(
+                name="PyCharm",
+                icon=plugin_dir + "/pycharm.svg",
+                config_dir_prefix="JetBrains/PyCharm",
+                binaries=["charm", "pycharm"]),
+            Editor(
+                name="Rider",
+                icon=plugin_dir + "/rider.svg",
+                config_dir_prefix="JetBrains/Rider",
+                binaries=["rider"]),
+            Editor(
+                name="RubyMine",
+                icon=plugin_dir + "/rubymine.svg",
+                config_dir_prefix="JetBrains/RubyMine",
+                binaries=["rubymine"]),
+            Editor(
+                name="WebStorm",
+                icon=plugin_dir + "/webstorm.svg",
+                config_dir_prefix="JetBrains/WebStorm",
+                binaries=["webstorm"]),
         ]
 
-    # finds the actual path to the relevant xml file of the most recent configuration directory
-    def find_config_path(self, app_name: str):
-        full_config_path = None
+    def handleQuery(self, query: Query):
+        editor_project_pairs = []
+        for editor in self.editors:
+            projects = editor.list_projects()
+            projects = [p for p in projects if Path(p.path).exists()]
+            projects = [p for p in projects if query.string.lower() in p.name.lower()]
+            editor_project_pairs.extend([(editor, p) for p in projects])
 
-        xdg_dir = (
-            GOOGLE_XDG_CONFIG_DIR
-            if app_name == "AndroidStudio"
-            else JETBRAINS_XDG_CONFIG_DIR
+        # sort by last opened
+        editor_project_pairs.sort(key=lambda pair: pair[1].last_opened, reverse=True)
+
+        query.add([self._make_item(editor, project, query) for editor, project in editor_project_pairs])
+
+    def _make_item(self, editor: Editor, project: Project, query: Query) -> Item:
+        return Item(
+            id="%s-%s-%s" % (editor.binary, project.path, project.last_opened),
+            text=project.name,
+            subtext=project.path,
+            completion=query.trigger + project.name,
+            icon=[editor.icon],
+            actions=[
+                Action(
+                    "Open",
+                    "Open in %s" % editor.name,
+                    lambda selected_project=project.path: runDetachedProcess(
+                        [editor.binary, selected_project]
+                    ),
+                )
+            ],
         )
-
-        # newer versions (since 2020.1) put their configuration here
-        if os.path.isdir(xdg_dir):
-            # dirs contains possibly multiple directories for a program (eg. .GoLand2018.1 and .GoLand2017.3)
-            dirs = [
-                f
-                for f in os.listdir(xdg_dir)
-                if os.path.isdir(os.path.join(xdg_dir, f)) and f.startswith(app_name)
-            ]
-            # take the newest
-            dirs.sort(reverse=True)
-            if len(dirs) != 0:
-                full_config_path = os.path.join(
-                    xdg_dir, dirs[0], NEW_RELATIVE_CONFIG_PATH
-                )
-
-        # if no config was found in the newer path, repeat for the old ones
-        if full_config_path is None or not os.path.exists(full_config_path):
-
-            # dirs contains possibly multiple directories for a program (eg. .GoLand2018.1 and .GoLand2017.3)
-            dirs = [
-                f
-                for f in os.listdir(HOME_DIR)
-                if os.path.isdir(os.path.join(HOME_DIR, f))
-                and f.startswith("." + app_name)
-            ]
-            # take the newest
-            dirs.sort(reverse=True)
-            if len(dirs) == 0:
-                return None
-
-            if app_name != "IntelliJIdea" and app_name != "AndroidStudio":
-                full_config_path = os.path.join(
-                    HOME_DIR, dirs[0], "config", OLD_RELATIVE_CONFIG_PATH
-                )
-            else:
-                full_config_path = os.path.join(
-                    HOME_DIR, dirs[0], "config", NEW_RELATIVE_CONFIG_PATH
-                )
-
-            if not os.path.exists(full_config_path):
-                return None
-        return full_config_path
