@@ -12,8 +12,8 @@ from albert import *
 
 md_iid = "0.5"
 md_version = "1.0"
-md_name = "Jetbrains projects"
-md_description = "Open Jetbrains projects"
+md_name = "Jetbrains"
+md_description = "Open Jetbrains IDE projects"
 md_license = "GPL-3"
 md_url = "https://github.com/mqus/jetbrains-albert-plugin"
 md_maintainers = ["@mqus", "@tomsquest"]
