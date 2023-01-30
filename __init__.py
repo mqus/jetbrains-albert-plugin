@@ -96,57 +96,59 @@ class Plugin(QueryHandler):
                 name="Android Studio",
                 icon=plugin_dir + "/androidstudio.svg",
                 config_dir_prefix="Google/AndroidStudio",
-                binaries=["studio", "androidstudio"]),
+                binaries=["studio", "androidstudio", "android-studio"]),
             Editor(
                 name="CLion",
                 icon=plugin_dir + "/clion.svg",
                 config_dir_prefix="JetBrains/CLion",
-                binaries=["clion"]),
+                binaries=["clion", "clion-eap"]),
             Editor(
                 name="DataGrip",
                 icon=plugin_dir + "/datagrip.svg",
                 config_dir_prefix="JetBrains/DataGrip",
-                binaries=["datagrip"]),
+                binaries=["datagrip", "datagrip-eap"]),
             Editor(
                 name="DataSpell",
                 icon=plugin_dir + "/dataspell.svg",
                 config_dir_prefix="JetBrains/DataSpell",
-                binaries=["dataspell"]),
+                binaries=["dataspell", "dataspell-eap"]),
             Editor(
                 name="GoLand",
                 icon=plugin_dir + "/goland.svg",
                 config_dir_prefix="JetBrains/GoLand",
-                binaries=["goland"]),
+                binaries=["goland", "goland-eap"]),
             Editor(
                 name="IntelliJ IDEA",
                 icon=plugin_dir + "/idea.svg",
                 config_dir_prefix="JetBrains/IntelliJIdea",
-                binaries=["idea"]),
+                binaries=["idea", "idea-ultimate", "idea-ce-eap", "idea-ue-eap", "intellij-idea-ce",
+                          "intellij-idea-ce-eap", "intellij-idea-ue-bundled-jre", "intellij-idea-ultimate-edition",
+                          "intellij-idea-community-edition-jre", "intellij-idea-community-edition-no-jre"]),
             Editor(
                 name="PhpStorm",
                 icon=plugin_dir + "/phpstorm.svg",
                 config_dir_prefix="JetBrains/PhpStorm",
-                binaries=["phpstorm"]),
+                binaries=["phpstorm", "phpstorm-eap"]),
             Editor(
                 name="PyCharm",
                 icon=plugin_dir + "/pycharm.svg",
                 config_dir_prefix="JetBrains/PyCharm",
-                binaries=["charm", "pycharm"]),
+                binaries=["charm", "pycharm", "pycharm-eap"]),
             Editor(
                 name="Rider",
                 icon=plugin_dir + "/rider.svg",
                 config_dir_prefix="JetBrains/Rider",
-                binaries=["rider"]),
+                binaries=["rider", "rider-eap"]),
             Editor(
                 name="RubyMine",
                 icon=plugin_dir + "/rubymine.svg",
                 config_dir_prefix="JetBrains/RubyMine",
-                binaries=["rubymine"]),
+                binaries=["rubymine", "rubymine-eap", "jetbrains-rubymine", "jetbrains-rubymine-eap"]),
             Editor(
                 name="WebStorm",
                 icon=plugin_dir + "/webstorm.svg",
                 config_dir_prefix="JetBrains/WebStorm",
-                binaries=["webstorm"]),
+                binaries=["webstorm", "webstorm-eap"]),
         ]
 
     def handleQuery(self, query: Query):
