@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-"""List and open JetBrains IDE projects."""
-
 import os
 from dataclasses import dataclass
 from pathlib import Path
