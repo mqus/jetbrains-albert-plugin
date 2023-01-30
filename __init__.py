@@ -62,7 +62,7 @@ class Editor:
                 last_opened = int(
                     tag_opened.attrib["value"]
                     if tag_opened is not None and "value" in tag_opened.attrib
-                    else ""
+                    else None
                 )
 
                 if project_path and last_opened:
