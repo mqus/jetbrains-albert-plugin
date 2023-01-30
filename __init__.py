@@ -13,7 +13,6 @@ md_description = "Open Jetbrains IDE projects"
 md_license = "GPL-3"
 md_url = "https://github.com/mqus/jetbrains-albert-plugin"
 md_maintainers = ["@mqus", "@tomsquest"]
-md_authors = ["@mqus", "@tomsquest"]
 
 
 @dataclass
