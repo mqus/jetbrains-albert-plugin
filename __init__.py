@@ -96,7 +96,8 @@ class Plugin(QueryHandler):
                 name="Android Studio",
                 icon=plugin_dir + "/androidstudio.svg",
                 config_dir_prefix="Google/AndroidStudio",
-                binaries=["studio", "androidstudio", "android-studio"]),
+                binaries=["studio", "androidstudio", "android-studio", "android-studio-canary", "jdk-android-studio",
+                          "android-studio-system-jdk"]),
             Editor(
                 name="CLion",
                 icon=plugin_dir + "/clion.svg",
