@@ -1,3 +1,5 @@
+# This plugin is no longer maintained. Please use the [built-in plugin](https://github.com/albertlauncher/python/tree/master/jetbrains_projects) instead.
+
 # Jetbrains-albert-plugin
 
 This is a plugin for the albert launcher(https://albertlauncher.github.io/) which lists and lets you start projects of Jetbrains IDEs such as IntelliJ IDEA, PyCharm, GoLand, etc.
